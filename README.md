@@ -39,7 +39,7 @@ statistical-learning-portfolio/
 ├── 02-probability-models/
 │ └── poisson_exponential_comparison.ipynb
 └── 03-regression-simulation/
-│ └── regression_shrinkage_bias_variance.ipynb
+  └── regression_shrinkage_bias_variance.ipynb
 ```
     
 ## Running the notebooks
