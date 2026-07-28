@@ -3,11 +3,11 @@
 ![R](https://img.shields.io/badge/R-4.x-276DC3?style=flat-square)
 ![status](https://img.shields.io/badge/status-academic%20project-d2691e?style=flat-square)
 
-Exploratory data analysis, principal component analysis, and K-means clustering on a dataset of 1,002 students, examining how study habits, lifestyle, and demographic factors relate to academic performance.
+Exploratory data analysis, principal component analysis, and K-means clustering on a dataset of 1002 students, examining how study habits, lifestyle and demographic factors relate to academic performance.
 
 ## Dataset
 
-`student_habits_performance.csv` — 1,002 observations, 16 variables:
+`student_habits_performance.csv` — 1002 observations, 16 variables:
 
 - **Numeric:** age, study hours/day, social media hours/day, Netflix hours/day, attendance %, sleep hours/day, exercise sessions/week, self-reported mental health rating (0–10), exam score (0–100)
 - **Categorical:** gender, part-time job status, diet quality, parental education level, internet quality, extracurricular participation
