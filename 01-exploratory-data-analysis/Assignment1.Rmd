@@ -1,0 +1,571 @@
+---
+title: "Assignment 1: Exploratory Data Analysis (EDA)"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+
+## 1) DATA LOADING & CLEANING
+
+```{r}
+library(tidyverse)    # ggplot2, dplyr, tidyr, etc.
+library(psych)        # describe()
+library(corrplot)     # correlation plots
+library(fastDummies)  # encoding
+library(FactoMineR)   # PCA
+library(factoextra)   # PCA and clustering visualisation
+
+# Import the dataset and treat empty cells or "NA" as missing values
+data <- read.csv("student_habits_performance.csv", na.strings = c("", "NA"))
+
+# Quick look at the data
+head(data)
+str(data)
+
+# Identify numeric and categorical variables
+numeric_vars <- data %>%
+  select(where(is.numeric))
+
+categorical_vars <- data %>%
+  select(where(is.character), -student_id)  
+
+list(
+  Numeric = names(numeric_vars),
+  Categorical = names(categorical_vars)
+)
+
+# Dimensions: the number of rows and columns
+nrow(data)
+ncol(data)
+```
+
+
+The dataframe contains **1002 observations and 16 variables**, each observation represents a student and variables tell us information related to their personal life and university performance.
+
+The **numeric variables** are:
+- `age`, in years;
+- `study_hours_per_day`, `social_media_hours`, `netflix_hours`, `sleep_hours`, all measured in hours per day, and stored as floating‑point values;
+- `attendance_percentage`, percentage of classes attended by the student  in a scale that goes from 0 to 100, stored as a floating-point value too;
+- `exercise_frequency`, number of exercise sessions per week;
+- `mental_health_rating`, self‑reported mental well‑being score going from 0 to 10, saved as integer;
+- `exam_score`, final exam score for the course expressed between 0 and 100, stored as a floating-point value.
+
+The **categorical variables** are:
+- `student_id`, it's a unique anonymous identifier assigned to each student;
+- `gender`, classified as the student’s self‑identified gender (Female, Male, Other);
+- `part_time_job`, indicating whether the student has a part‑time job (Yes/No);
+- `diet_quality`, self‑reported nutritional quality of the student’s diet (Poor, Fair, Good).
+- `parental_education_level`, highest education level of the student’s parents (None, High School, Bachelor, Master).
+- `internet_quality`, quality of their home internet connection (Poor, Average, Good);
+- `extracurricular_participation`, whether they participate in extracurricular activities (Yes/No).
+
+
+
+
+```{r}
+# Check if there is a missing values per column
+colSums(is.na(data))
+
+# Check overall the rows with the missing values
+data[is.na(data$diet_quality), ]
+
+
+# Mean for all numeric variables
+numeric_means <- sapply(
+  data[sapply(data, is.numeric)],
+  mean,
+  na.rm = TRUE
+)
+
+# Mode, excluding student_id
+get_mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+categorical_vars <- names(data)[sapply(data, is.character)]
+categorical_vars <- setdiff(categorical_vars, "student_id")
+
+categorical_modes <- sapply(
+  data[categorical_vars],
+  get_mode
+)
+
+# Summary table combining both
+summary_table <- list(
+  Means = numeric_means,
+  Modes = categorical_modes
+)
+summary_table
+
+
+# Calculate the mode of diet_quality
+mode_value <- names(sort(table(data$diet_quality), decreasing = TRUE))[1]
+mode_value
+
+# Impute diet_quality using the mode
+data$diet_quality[is.na(data$diet_quality)] <- mode_value
+
+# Define again now that values have been imputated
+categorical_vars <- data %>%
+  select(where(is.character), -student_id)  
+```
+
+
+After searching for missing values, we see that there are **7 observations missing** in the `diet_quality` variable. 
+
+Although this represents less than 1% of the dataset, we decided to print the corresponding rows to examine the other values in order to understand better the nature of these missing cases and if it was likely or not to be just a random miss. 
+
+To do this, we checked the means and modes of the other variables (excluding `student_id`, that doesn't provide any valuable information in this situation). We observed that these students tend to have slightly lower values for `mental_health_rating`, indicating that it may be connected to the missed insertion of the `diet_quality` value (maybe, students in stressful mental situations didn't want to share this side of their habits or they are currently not able to evaluate it). However, the values of other variables are aligned with the general trend of the dataset, so we decided to just **imputate the values with the mode**, that for `diet_quality` is *Fair*.
+
+
+
+## 2) UNIVARIATE DATA DESCRIPTION
+
+```{r}
+# Descriptive statistics for numeric variables
+describe(numeric_vars)
+
+# Frequency tables for categorical variables, except student_id
+for (var in names(categorical_vars)) {
+  cat("\n\n### Frequency table for:", var, "\n")
+  print(table(categorical_vars[[var]]))
+}
+```
+
+
+
+```{r}
+# Histograms for numerical variables
+numeric_vars %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(bins = 30, color = "black", fill = "blue") +
+  facet_wrap(~ variable, scales = "free") +
+  labs(
+    title = "Histograms of Numeric Variables",
+    x = "Value",
+    y = "Frequency"
+  ) +
+  theme_minimal()
+
+
+
+# Boxplots for small numerical variables
+small_vars <- c(
+  "study_hours_per_day", "social_media_hours", "sleep_hours",
+  "netflix_hours", "mental_health_rating", "exercise_frequency"
+)
+
+numeric_vars %>%
+  select(all_of(small_vars)) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot(fill = "lightgreen") +
+  coord_flip() +
+  labs(
+    title = "Boxplots of Small-Range Numeric Variables",
+    x = "Variable",
+    y = "Value"
+  ) +
+  theme_minimal()
+
+
+# Boxplots for large numerical variables
+large_vars <- c("exam_score", "attendance_percentage", "age")
+
+numeric_vars %>%
+  select(all_of(large_vars)) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "value") %>%
+  ggplot(aes(x = variable, y = value)) +
+  geom_boxplot(fill = "lightpink") +
+  coord_flip() +
+  labs(
+    title = "Boxplots of Large-Range Numeric Variables",
+    x = "Variable",
+    y = "Value"
+  ) +
+  theme_minimal()
+
+```
+
+
+The **histograms and boxplots** show that:
+
+- `age`, the histogram has some fluctuations in the heights, for example the bar at age 20 is clearly slightly taller than the others (it resonates with the `age` median too, set at 20), while the one at 22 and 19 are slightly shorter. Overall, though, it shows an uniform historgam, having roughly similar amounts of people distributed throughout the different ages. The boxplot shows that the median is positioned slightly to the left, so it's closer to 20 than 25, suggesting that there's a very slight concentration of data toward the younger end of the spectrum, even though the range is wide. The whiskers, on the other hand, appear roughly equal in length, showing that there are no extreme outliers either. Moreover, about the IQR, the box itself is quite narrow, again confirming that the middle 50% of the data is tightly packed between 19 and 22;
+
+- `attendace_percentage`, the histogram shows that there's a left (negative) skew towards lower values, while the majority of the data is concentrated on the right, meaning that most students have high attendance (between 80% and 100%, with the peak around 84%, as it's visible in the statistics table shown before); moreover, there's a spike at 100%, showing that a big amount of students has perfect attendance. The boxplot confirms, once again, the median around 84%, while it shows how the IQR goes around 78% to roughly 90%. The right whisker ends at 100%, confirmed by the histogram too, while the left whisker is much longer and it has some outliers, showing those students with a much lower attendance than the resto of the group;
+
+- `exam_score`, the histogram is heavily toward the right, having a peak around 72, though there's a peak at 100 too. The boxplot confirms the peak by looking at the median; the IQR is quite large in comparison with the other variables, showing that the scores are packed between 60 and 80 scores; the whiskers stretch a lot, especially the left one, showing that still there's a big variaty in scores among students. Beyond 40, there are two distinct outliers, showing students that scored significatly lower than others;
+
+- `exercise_frequency`, the histogram shows that it's approximately uniform, meaning that it's just as likely to find someone who never exercises and someone that exercises very often. Still, there're slightly smaller peaks for who exercises 2 and 4 times per week and a slighlty higher peak for who exercises 3 times a week (that it's the recommended amount in most cases too). The boxplot has a decent sized IQR, perfectly centered around the median, while whiskers extend to the full range without outliers; 
+
+- `mental_health_rating`, this histogram too is approximately uniform and evenly spread, with some slightly minor peaks. The boxplots confirms that the data is quite balance, the median is around 5, the IQR shows symmetry and the whiskers are on equal length, with no outliers;
+
+- `netflix_hours`, the histogram has right (positive) skew distribution, meaning that most students watch a small amount of Netflix (around 0 to 2 hours per day), though the long tail to the right shows that a small number of students watch a lot. In the boxplot, the IQR shows that most students have very similar viewing habits (between 1.5 to 3 hours), while the whisker on the right is much larger than the one on the left, confirming the positive skew of the histogram with data trailing off significantly toward higher values. There are around four outliers, representing students that stated to spend a lot of time watching tv;
+
+- `sleep_hours`, the histogram shows a bell-shaped distribution, with the majority of people clustering around the average of roughly 6.5 hours of sleep per night, with a big drop toward both extremes values. The boxplot confirms the balanced data, having an IQR that shows how students are getting between 6 and 8 hours of sleep, and whiskers reaching out to about 3.5 and 9.5 hours. There is one outlier at 10 hours;
+
+- `social_media_hours`, the histogram shows a positive skew with the tail stretching to the right. The peak is around 3 hours per day, with a big drop beyond 4 hours. The boxplot shows the median at 2.5 hours, a nicely balanced box (IQR between 1.8 and 3.5 hours), and a right whisker longer on the right side, as shown in the histogram too. There are a few outliers on the right, representing students that make a massive use of social media daily;
+
+- `study_hours_per_day`, the histogram is bell-shaped, with students mostly studying between 3 and 5 hours per day, with very few studying 0 or more than 8 hours. The boxplot is almost perfectly centered, with the median line at around 3.5 hours, and quite long and balanced whiskers. There are some outliers, all concentrated in the right side, showing some students that invest more hours than average in studying.
+
+
+
+```{r}
+# Bar charts
+categorical_vars %>%
+  pivot_longer(everything(), names_to = "variable") %>%
+  ggplot(aes(x = value, fill = value)) +
+  geom_bar(color = "black", width = 0.6) +
+  facet_wrap(~ variable, scales = "free") +
+  # Use viridis for a professional look that handles many categories
+  scale_fill_viridis_d(option = "plasma") + 
+  theme_minimal() +
+  labs(title = "Categorical Distributions", x = NULL, y = "Count") +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+
+# Pie charts
+for (var in names(categorical_vars)) {
+  
+  df <- categorical_vars %>%
+    count(!!sym(var)) %>%
+    mutate(pct = n / sum(n)) %>%
+    rename(value = !!sym(var))
+  
+  p <- ggplot(df, aes(x = "", y = n, fill = value)) +
+    geom_bar(stat = "identity", width = 1) +
+    coord_polar("y") +
+    geom_text(aes(label = scales::percent(pct)),
+              position = position_stack(vjust = 0.5),
+              size = 4) +
+    theme_void() +
+    labs(
+      title = paste("Distribution of", var),
+      fill = var
+    )
+  
+  print(p)
+}
+
+
+```
+
+
+The **bar and pie charts** show that:
+
+- `diet_quality`, the *Fair* is the most frequent category while the minority of students follow a Poor diet. Nonetheless, it means anyway that only a minority of students maintains a Good diet;
+
+- `extracurricular_participation`, the vast majority of students don't take part in extracurricular activities;
+
+- `gender`, the amount of students is almost perfectly balanced between *Male* and *Female*, while the Other is a small minority;
+
+- `internet_quality`, the most frequent category is *Good*, still a large amount of students define their internet quality as Average. Just a small amount report to have Poor internet connection;
+
+- `parental_education_level`, *High School* is the most frequent here, followed closely by Bachelor. Master and None are less frequent; 
+
+- `part_time_job`, here it's very close to the extracurricular participation, having that the majority of students don't have a part-time job.
+
+
+
+
+## 3) BIVARIATE AND MULTIVARIATE DESCRIPTION
+
+```{r}
+# Compute correlation matrix for numeric variables only
+cor_matrix <- cor(numeric_vars)
+
+# Correlation heatmap
+corrplot(
+  cor_matrix,
+  method = "color",
+  type = "upper",
+  tl.col = "black",
+  tl.srt = 45,
+  addCoef.col = "black",
+  col = colorRampPalette(c("#440154FF", "#31688EFF", "#35B779FF", "#FDE725FF"))(200),
+  number.cex = 0.7,
+  tl.cex = 0.8,
+  cl.cex = 0.8
+)
+
+```
+
+
+The **correlation heatmap** allows us to explore the relationship among the numerical variables, and it shows us that:
+
+- `age` shows no meaningful correlation with any variable, having all values extremely close to 0;
+
+- `study_hours_per_day`, it shows a strongly positive correlation with `exam_score`, denoting the strongest relationship in the dataset. It shows that the final score is almost completely connected to the amount of hours dedicated to studying;
+
+- `social_media_hours` and `netflix_hours` have a slight negative correlation with `exam_score`, though it's not that strong. This shows that these habits lead to a slightly lower performance overall;
+
+- `attendace_percentage`, `sleep_hours` and `exercise_frequency` have a very small positive correlation with `exam_score`, though they are weak. This leads us to notice how healthier and more structured habits slightly better performance;
+
+- `mental_health_rating`, it has a moderate positive correlation with `exam_score`, becoming the second‑strongest positive relationship after study hours, showing that students with better well‑being tend to perform somewhat better academically.
+
+
+
+```{r}
+# Scatterplots for numerical variables
+num_names <- names(numeric_vars)
+
+for (i in 1:(length(num_names)-1)) {
+  for (j in (i+1):length(num_names)) {
+    
+    p <- ggplot(numeric_vars, aes_string(x = num_names[i], y = num_names[j])) +
+      geom_point(alpha = 0.6, color = "#31688EFF", size = 2) +   # uniform color + size
+      geom_smooth(method = "lm", se = FALSE, color = "#440154FF", linewidth = 1) +
+      theme_minimal(base_size = 13) +
+      labs(
+        title = paste(num_names[i], "vs", num_names[j]),
+        x = num_names[i],
+        y = num_names[j]
+      ) +
+      theme(
+        plot.title = element_text(face = "bold"),
+        panel.grid.minor = element_blank()
+      )
+    
+    print(p)
+  }
+}
+
+```
+
+
+The majority of these *scatter plots* show no correlation and, consequentially, their relationship is non-linear because of independency of the variables.
+
+Some graphs with something to say are:
+
+- `netflix_hours` vs `study_hours_per_day`, the regression line goes slightly downward, indicating a very weak negative linear relationship that tells us that students who study more may tend to spend less hours watching Netflix. Though, the effect is minimal, and it's visible thanks to how points are widely scattered too. This is mentioned as a sample for all the similar plots present;
+
+- `study_hours_per_day` vs `exam_score`, here the regression line goes steeply upward, showing a strong positive linear relationship. Points follow the trend closely, confirming the strong relationship between these two variables;
+
+- `social_media_hours` vs `exam_score`, the regression line goes downward in a way that indicates a weak negative linear relationship. The relationship is weak though, as seen by the points widely scattered around the line. A similar situation can be found in the `netflix_hours` vs `exam_score`.
+
+So, mostly there are weak linear relationships, one very strong linear relationships and no nonlinear relationships.
+
+
+
+```{r}
+# Comparison of numerical variables across categories
+categorical_vars <- names(data)[sapply(data, function(x) is.factor(x) || is.character(x))]
+categorical_vars <- setdiff(categorical_vars, "student_id")
+numeric_vars <- names(data)[sapply(data, is.numeric)]
+
+for (cat in categorical_vars) {
+  for (num in numeric_vars) {
+    
+    p <- ggplot(data, aes(x = .data[[cat]], y = .data[[num]], fill = .data[[cat]])) +
+      geom_boxplot(alpha = 0.7, outlier.size = 1.5) +
+      theme_minimal(base_size = 13) +
+      labs(
+        title = paste(num, "by", cat),
+        x = cat,
+        y = num
+      ) +
+      theme(
+        legend.position = "none",
+        plot.title = element_text(face = "bold")
+      )
+    
+    print(p)
+  }
+}
+```
+
+
+We used **boxplots** to compare how numeric variables varie across different groups and they showed us that most numeric variables showed similar distributions across categories, with overlapping medians and spreads.
+
+This indicates that factors such as gender, part‑time job status, diet quality, parental education level, internet quality, and extracurricular participation do not produce large differences in exam scores, study habits, or lifestyle measures
+
+Even though some categories show small shifts in medians, the overall patterns suggest that the relationships are weak and that the numeric variables are fairly consistent across groups.
+
+```{r}
+# Contingency tables for categorical variables
+for (i in 1:(length(categorical_vars)-1)) {
+  for (j in (i+1):length(categorical_vars)) {
+    
+    cat1 <- categorical_vars[i]
+    cat2 <- categorical_vars[j]
+    
+    cat("\n\n### Contingency Table:", cat1, "×", cat2, "\n")
+    print(table(data[[cat1]], data[[cat2]]))
+  }
+}
+```
+A **contingency table** allows us to display the frequency distribution of two or more categorical variables. 
+
+By analysing the tables, it's clear that most categorical variables show very weak or no association with each other.
+
+## 4) PRINCIPAL COMPONENT ANALYSIS AND CLUSTERING
+```{r}
+# Dummy coding for binary variables
+data_encoded <- dummy_cols(
+  data,
+  select_columns = c("part_time_job", "extracurricular_participation"),
+  remove_first_dummy = TRUE,
+  remove_selected_columns = TRUE
+)
+
+# One-hot encoding for gender
+data_encoded <- dummy_cols(
+  data_encoded,
+  select_columns = "gender",
+  remove_first_dummy = TRUE,
+  remove_selected_columns = TRUE
+)
+
+# Ordinal encoding
+data_encoded$diet_quality <- as.numeric(factor(
+  data_encoded$diet_quality,
+  levels = c("Poor", "Fair", "Good"),
+  ordered = TRUE
+))
+
+data_encoded$internet_quality <- as.numeric(factor(
+  data_encoded$internet_quality,
+  levels = c("Poor", "Average", "Good"),
+  ordered = TRUE
+))
+
+data_encoded$parental_education_level <- as.numeric(factor(
+  data_encoded$parental_education_level,
+  levels = c("None", "High School", "Bachelor", "Master"),
+  ordered = TRUE
+))
+
+# Remove student_id
+data_encoded$student_id <- NULL
+
+
+# Apply PCA with internal scaling
+data.pca <- prcomp(data_encoded, scale = TRUE)
+summary(data.pca)
+
+
+```
+The **cumulative proportion of variance** explained by the first 12 principal components is approximately 84%, so we can state that we need the first 12 components in order to accurately represent the data.
+
+
+```{r}
+# Correlation circle
+data.pca$rotation[, 1:12] #loading vectors of the first 12 principal components
+
+p <- fviz_pca_var(data.pca,
+             col.var = "contrib", #colour by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     #avoid text overlapping
+             )
+p + labs(x = "PC1", y = "PC2")
+
+# Biplot
+p <- fviz_pca_biplot(data.pca, 
+                c(1,2),
+                geom.ind = "point",
+                pointsize = 1,
+                alpha.ind = 0.4,
+                col.var = "#000000", # Variables color
+                col.ind = "#00AFBB",  #Individuals color
+                labelsize = 3.5,
+                repel = TRUE,
+                axes.labs = c("PC1", "PC2")
+                )
+
+p + labs(x = "PC1", y = "PC2")
+
+data.reduced <- as.data.frame(data.pca$x[, 1:12]) #reducing dimensionality to the 12 principal components that represent 84% of data
+```
+
+The **correlation circle** shows us how each variable contributes to the first two Principal Components. Vectors that point in the same direction are positively correlated, while those pointing oppositly are negatively correlated.
+The **biplot** shows us how students distribute along PC1 and PC2. 
+There are some patterns that can be observed, let's divide them for PC1 and PC2.
+
+PC1 can be interpreted as academic performance and engagement.
+Strongly positive loadings are on the right side:
+- `exam_score`;
+- `mental_health_rating`;
+- `study_hours_per_day`;
+Showing the high performing students are the ones that invest more time in their studies and that self-report better mental health.
+
+
+Strongly negative loadings are on the left side:
+- `social_media_hours`;
+- `netflix_hours`;
+- `part_time_job`.
+Showing that more time spent on entertainment or work is less directly tied to exam performance.
+
+PC2, on the other hand, seems to reflect lifestyle and socio-demographic characteristics.
+Strongly positive loadings are on the upper side:
+- `gender_Other`;
+- `internet_quality`;
+- `sleep_hours`.
+
+Strongly negative loadings are on the lower side:
+- `gender_Male`;
+- `exercise_frequency`;
+- `parental_education_level`.
+
+This shows PC2 separates students by lifestyle difference, not academic outcomes. So, this component reflects who students are and how they live.
+
+
+```{r}
+# K-means selected as a clustering algorithm
+
+pcs <- data.pca$x[, 1:12]
+
+fviz_nbclust(pcs, kmeans, method = "silhouette")
+```
+
+
+We selected the **K-means**, where each observation belongs to the cluster with the nearest mean. The algorithm works by iteratively updating cluster assignments and centroids until the solution stabilizes.
+
+The **silhouette plot** shows that the highest average silhouette width occurs at k=3, so choosing 3 clusters provide the best balance between cluster cohesion and cluster separation from each other. Based on this, we run the k-means using k=3.
+
+
+```{r}
+# Run k-means with 3 cluster
+
+set.seed(123)
+kmeans_res <- kmeans(pcs, centers = 3, nstart = 25)
+
+df_plot <- data.frame(
+  PC1 = pcs[,1],
+  PC2 = pcs[,2],
+  cluster = factor(kmeans_res$cluster)
+)
+
+ggplot(df_plot, aes(PC1, PC2, color = cluster)) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  labs(title = "K-means Clusters")
+```
+
+The scatterplot of the first two PCs shows three clusters, where clusters 1 and 2 appear relatively close to each other along the PC1 axis (even though they are still visibly separated, with just some points overlapping), while cluster 3 is positioned higher along PC2 and is clearly separated from the other two clusters.
+So, overall, the plot indicates that the K‑means algorithm identified three distinguishable groups.
+
+
+
+## 5) SUMMARY AND INTERPRETATION
+The dataset contains 1002 student observations with 16 variables about their academic performance, lifestyle habits, and demographic information. Missing data was small, with only 7 observations missing in `diet_quality`, representing less than 1% of the dataset, which we imputed using the mode. The numeric variables show relatively normal distributions, while categorical variables are fairly balanced across categories, resulting in a dataset that represents a diverse student population with varied study habits, screen time usage, and socio-economic backgrounds.
+
+
+
+Some patterns emerged through our analysis:
+
+- Contrary to our initial expectations, factors like part-time job status, parental education level, and extracurricular participation showed almost no impact on exam scores and study habits. On the other hand, it was surprising to see that basically the most crucial predictor of exam scores is just study hours, followed by the self-reported mental health. Even attendance alone doesn't guarantee high performance, even though we noticed that the majority of students have high attendance overall.
+
+- The PCA showed that 12 components are needed to explain 84% of variance, indicating the big complexity in student behavior. PC1 was mainly driven by academic performance variables and it clearly separates high-performing students (higher exam scores, more study hours, better mental health) from those spending more time on entertainment (netflix and social media), while PC2 loaded more heavily on demographic and lifestyle features, capturing differences in gender, sleep, internet quality, and exercise patterns—factors unrelated to academic outcomes but reflecting who the students are.
+
+- K-means clustering identified three well-separated groups, with clusters 1 and 2 differ primarily along PC1 and cluster 3 on PC2, suggesting the existence of a distinct student subpopulation with different characteristics rather than just varying performance levels.
+
+Overall, our findings suggest that while performance differences are mainly led by engagement and study behaviors, lifestyle and demographic factors explain meaningful variation in how students differ from one another without directly affecting exam results.
+
