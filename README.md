@@ -33,14 +33,15 @@ Simulated sparse linear regression (n=300, p=10) with OLS estimation and full di
 ## Structure
 
 statistical-learning-portfolio/
-├── 01-exploratory-data-analysis/
-│ ├── eda_student_habits.Rmd
-│ └── data/student_habits_performance.csv
-├── 02-probability-models/
-│ └── poisson_exponential_comparison.ipynb
-└── 03-regression-simulation/
-└── regression_shrinkage_bias_variance.ipynb
-
+  01-exploratory-data-analysis/
+    eda_student_habits.Rmd
+    data/
+      student_habits_performance.csv
+  02-probability-models/
+    poisson_exponential_comparison.ipynb
+  03-regression-simulation/
+    regression_shrinkage_bias_variance.ipynb
+    
 ## Running the notebooks
 
 - **R project:** open `eda_student_habits.Rmd` in RStudio and knit, or run interactively. Requires `tidyverse`, `psych`, `corrplot`, `fastDummies`, `FactoMineR`, `factoextra`.
