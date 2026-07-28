@@ -31,16 +31,16 @@ Simulated sparse linear regression (n=300, p=10) with OLS estimation and full di
 **Tools:** Python, scikit-learn, statsmodels, SciPy
 
 ## Structure
-
+```
 statistical-learning-portfolio/
-  01-exploratory-data-analysis/
-    eda_student_habits.Rmd
-    data/
-      student_habits_performance.csv
-  02-probability-models/
-    poisson_exponential_comparison.ipynb
-  03-regression-simulation/
-    regression_shrinkage_bias_variance.ipynb
+├── 01-exploratory-data-analysis/
+│ ├── eda_student_habits.Rmd
+│ └── data/student_habits_performance.csv
+├── 02-probability-models/
+│ └── poisson_exponential_comparison.ipynb
+└── 03-regression-simulation/
+└── regression_shrinkage_bias_variance.ipynb
+```
     
 ## Running the notebooks
 
