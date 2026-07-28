@@ -1,8 +1,9 @@
-![R](https://img.shields.io/badge/R-276DC3?style=flat&logo=r&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
-![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=flat&logo=jupyter&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat&logo=scikit-learn&logoColor=white)
 # Statistical Learning Portfolio
+
+![python](https://img.shields.io/badge/python-3.11%2B-306998?style=flat-square)
+![license](https://img.shields.io/badge/license-MIT-4c7c3c?style=flat-square)
+![status](https://img.shields.io/badge/status-academic%20project-d2691e?style=flat-square)
+![R](https://img.shields.io/badge/R-4.x-276DC3?style=flat-square)
 
 This statistical portfolio comprises three projects built for the Statistical Learning and Data Analysis course, each combining theoretical grounding with hands-on implementation across the following topics: exploratory data analysis and unsupervised learning, probability model theory and simulation, regression with regularisation and non-linear methods.
 
