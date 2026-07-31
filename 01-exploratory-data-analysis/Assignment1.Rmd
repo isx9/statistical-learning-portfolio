@@ -116,9 +116,9 @@ categorical_vars <- data %>%
 
 After searching for missing values, we see that there are **7 observations missing** in the `diet_quality` variable. 
 
-Although this represents less than 1% of the dataset, we decided to print the corresponding rows to examine the other values in order to understand better the nature of these missing cases and if it was likely or not to be just a random miss. 
+Although this represents less than 1% of the dataset, I decided to print the corresponding rows to examine the other values in order to understand better the nature of these missing cases and if it was likely or not to be just a random miss. 
 
-To do this, we checked the means and modes of the other variables (excluding `student_id`, that doesn't provide any valuable information in this situation). We observed that these students tend to have slightly lower values for `mental_health_rating`, indicating that it may be connected to the missed insertion of the `diet_quality` value (maybe, students in stressful mental situations didn't want to share this side of their habits or they are currently not able to evaluate it). However, the values of other variables are aligned with the general trend of the dataset, so we decided to just **imputate the values with the mode**, that for `diet_quality` is *Fair*.
+To do this, I checked the means and modes of the other variables (excluding `student_id`, that doesn't provide any valuable information in this situation). I observed that these students tend to have slightly lower values for `mental_health_rating`, indicating that it may be connected to the missed insertion of the `diet_quality` value (maybe, students in stressful mental situations didn't want to share this side of their habits or they are currently not able to evaluate it). However, the values of other variables are aligned with the general trend of the dataset, so I decided to just **imputate the values with the mode**, that for `diet_quality` is *Fair*.
 
 
 
@@ -383,7 +383,7 @@ for (cat in categorical_vars) {
 ```
 
 
-We used **boxplots** to compare how numeric variables varie across different groups and they showed us that most numeric variables showed similar distributions across categories, with overlapping medians and spreads.
+I used **boxplots** to compare how numeric variables varie across different groups and they showed that most numeric variables showed similar distributions across categories, with overlapping medians and spreads.
 
 This indicates that factors such as gender, part‑time job status, diet quality, parental education level, internet quality, and extracurricular participation do not produce large differences in exam scores, study habits, or lifestyle measures
 
@@ -402,7 +402,7 @@ for (i in 1:(length(categorical_vars)-1)) {
   }
 }
 ```
-A **contingency table** allows us to display the frequency distribution of two or more categorical variables. 
+A **contingency table** allows to display the frequency distribution of two or more categorical variables. 
 
 By analysing the tables, it's clear that most categorical variables show very weak or no association with each other.
 
@@ -453,7 +453,7 @@ summary(data.pca)
 
 
 ```
-The **cumulative proportion of variance** explained by the first 12 principal components is approximately 84%, so we can state that we need the first 12 components in order to accurately represent the data.
+The **cumulative proportion of variance** explained by the first 12 principal components is approximately 84%, so it can be stated that the first 12 components are needed in order to accurately represent the data.
 
 
 ```{r}
@@ -485,8 +485,8 @@ p + labs(x = "PC1", y = "PC2")
 data.reduced <- as.data.frame(data.pca$x[, 1:12]) #reducing dimensionality to the 12 principal components that represent 84% of data
 ```
 
-The **correlation circle** shows us how each variable contributes to the first two Principal Components. Vectors that point in the same direction are positively correlated, while those pointing oppositly are negatively correlated.
-The **biplot** shows us how students distribute along PC1 and PC2. 
+The **correlation circle** shows how each variable contributes to the first two Principal Components. Vectors that point in the same direction are positively correlated, while those pointing oppositly are negatively correlated.
+The **biplot** shows how students distribute along PC1 and PC2. 
 There are some patterns that can be observed, let's divide them for PC1 and PC2.
 
 PC1 can be interpreted as academic performance and engagement.
@@ -526,9 +526,9 @@ fviz_nbclust(pcs, kmeans, method = "silhouette")
 ```
 
 
-We selected the **K-means**, where each observation belongs to the cluster with the nearest mean. The algorithm works by iteratively updating cluster assignments and centroids until the solution stabilizes.
+I selected the **K-means**, where each observation belongs to the cluster with the nearest mean. The algorithm works by iteratively updating cluster assignments and centroids until the solution stabilizes.
 
-The **silhouette plot** shows that the highest average silhouette width occurs at k=3, so choosing 3 clusters provide the best balance between cluster cohesion and cluster separation from each other. Based on this, we run the k-means using k=3.
+The **silhouette plot** shows that the highest average silhouette width occurs at k=3, so choosing 3 clusters provide the best balance between cluster cohesion and cluster separation from each other. Based on this, I run the k-means using k=3.
 
 
 ```{r}
@@ -555,17 +555,17 @@ So, overall, the plot indicates that the K‑means algorithm identified three di
 
 
 ## 5) SUMMARY AND INTERPRETATION
-The dataset contains 1002 student observations with 16 variables about their academic performance, lifestyle habits, and demographic information. Missing data was small, with only 7 observations missing in `diet_quality`, representing less than 1% of the dataset, which we imputed using the mode. The numeric variables show relatively normal distributions, while categorical variables are fairly balanced across categories, resulting in a dataset that represents a diverse student population with varied study habits, screen time usage, and socio-economic backgrounds.
+The dataset contains 1002 student observations with 16 variables about their academic performance, lifestyle habits, and demographic information. Missing data was small, with only 7 observations missing in `diet_quality`, representing less than 1% of the dataset, which I imputed using the mode. The numeric variables show relatively normal distributions, while categorical variables are fairly balanced across categories, resulting in a dataset that represents a diverse student population with varied study habits, screen time usage and socio-economic backgrounds.
 
 
 
 Some patterns emerged through our analysis:
 
-- Contrary to our initial expectations, factors like part-time job status, parental education level, and extracurricular participation showed almost no impact on exam scores and study habits. On the other hand, it was surprising to see that basically the most crucial predictor of exam scores is just study hours, followed by the self-reported mental health. Even attendance alone doesn't guarantee high performance, even though we noticed that the majority of students have high attendance overall.
+- Contrary to my initial expectations, factors like part-time job status, parental education level and extracurricular participation showed almost no impact on exam scores and study habits. On the other hand, it was surprising to see that basically the most crucial predictor of exam scores is just study hours, followed by the self-reported mental health. Even attendance alone doesn't guarantee high performance, even though the majority of students have high attendance overall.
 
 - The PCA showed that 12 components are needed to explain 84% of variance, indicating the big complexity in student behavior. PC1 was mainly driven by academic performance variables and it clearly separates high-performing students (higher exam scores, more study hours, better mental health) from those spending more time on entertainment (netflix and social media), while PC2 loaded more heavily on demographic and lifestyle features, capturing differences in gender, sleep, internet quality, and exercise patterns—factors unrelated to academic outcomes but reflecting who the students are.
 
 - K-means clustering identified three well-separated groups, with clusters 1 and 2 differ primarily along PC1 and cluster 3 on PC2, suggesting the existence of a distinct student subpopulation with different characteristics rather than just varying performance levels.
 
-Overall, our findings suggest that while performance differences are mainly led by engagement and study behaviors, lifestyle and demographic factors explain meaningful variation in how students differ from one another without directly affecting exam results.
+Overall, these findings suggest that while performance differences are mainly led by engagement and study behaviors, lifestyle and demographic factors explain meaningful variation in how students differ from one another without directly affecting exam results.
 
